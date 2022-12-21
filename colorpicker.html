@@ -1,0 +1,662 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>ANcam</title>
+  <style>
+    *,
+    *:after,
+    *:before {
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      position: relative;
+      background: #22142b;
+    }
+
+    h3 {
+      font-size: 25px;
+      font-weight: bold;
+      font-family: serif;
+      color: #ECF0F1;
+      text-align: center;
+    }
+
+    .thumbnail {
+      position: relative;
+      display: block;
+      width: 90%;
+      overflow: hidden;
+      margin: 0 auto;
+      margin-top: 60px;
+    }
+
+    .thumbnail img {
+      display: block;
+      width: 100%;
+      cursor: crosshair;
+      border: 5px solid #fff;
+      margin: 0 auto;
+    }
+
+    .result,
+    .result2 {
+      position: fixed;
+      top: 0;
+      left: 0;
+      background: #000;
+      background: rgba(0, 0, 0, 0.2);
+      color: #fff;
+      margin: 0;
+      padding: 10px 15px;
+      display: block;
+    }
+
+    .result2 {
+      top: 200px;
+    }
+
+    .setting,
+    .spreadsheet {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: #000;
+      background: rgba(0, 0, 0, 0.2);
+      color: #fff;
+      margin: 0;
+      padding: 10px 15px;
+      display: block;
+      max-width: 280px;
+    }
+
+    .setting {
+      top: 50px;
+    }
+
+    .result span,
+    .result2 span {
+      display: block;
+      font-size: 13px;
+    }
+
+    .preview {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      display: block;
+      margin: 0;
+      padding: 0;
+      width: 50px;
+      height: 50px;
+      border: 5px solid #FFF;
+      border-right: none;
+      border-top: none;
+    }
+
+    .rect,
+    .rect2 {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      display: block;
+      background: transparent;
+      border: 2px solid #000;
+    }
+
+    #cs {
+      display: none;
+    }
+
+    @media (min-width:768px) {
+      .thumbnail {
+        width: 85%;
+      }
+    }
+
+    @media (min-width:1024px) {
+      .thumbnail {
+        width: 55%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1 style="color:#fff;" align="center">ANcam</h1>
+
+  <div class="thumbnail">
+    <div class="preview"></div>
+    <input type="file" style="display: none;" />
+    <div class="rect"></div>
+    <div class="rect2"></div>
+    <img alt="image" src="" />
+  </div>
+  <div class="spreadsheet">
+  </div>
+  <div class="setting">
+    <button id="choose">Choose Image...</button>
+    <br>
+    <label>Sample Size:</label>
+    <input type="number" id="rect_size" style="max-width: 150px;">
+    <br>
+    <label>Patient ID:</label>
+    <input type="number" id="patient_id" style="max-width: 150px;">
+    <br>
+    <button id="save">Save Colour</button>
+    <br>
+    <button id="clear">Clear Colour</button>
+    <br>
+    <button id="download">Download Spreadsheet</button>
+    <img src="https://sta.uwi.edu/wp-content/uploads/2021/02/Regcrest.jpg" class="thumbnail" alt="">
+    <p>
+      The programme is used to extract colour channel data from two selected points. You can then download the data on
+      an excel CSV file.
+    </p>
+    <p>
+      Follow these steps:
+    </p>
+    <p>1. Click on “choose image” to open your files and select the image you will like to analyse.</p>
+    <p>2. Once the image is opened, enter the size of your sample area in the “rect size” box.</p>
+    <p>3. Also enter the patient ID or other identifier for this image.</p>
+    <p>4. You can click anywhere on the image to select your first point of investigation. A black box will appear
+      around the area selected.</p>
+    <p>5. You can then select the 2nd area to compare, which will be the same size as the first sample; however, you may
+      also change the “rect size” to sample an area of a different size.</p>
+    <p>6. Once you a satisfied with your two selected areas for comparison, click on “save colour”, if you would like to
+      re-sample without saving, click “clear colour.”</p>
+    <p>7. You can click on “choose image” to analyse another image.</p>
+    <p>8. Once you have analysed all images, click “download spreadsheet” to obtain a Microsoft Excel sheet.</p>
+    <p>The software was created to analyse images of Acanthosis Nigricans by Andrew S. Dhanoo and Brian N. Cockburn of
+      the Department of Life Sciences, University of the West Indies St. Augustine Campus.
+    </p>
+    <p>For further information, send requests to andrew.dhanoo@sta.uwi.edu or 1868 380 8747</p>
+  </div>
+  <div class="result">
+  </div>
+  <div class="result2">
+  </div>
+  <a id="download_csv" style="display: none;"></a>
+
+  <canvas id="cs"></canvas>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.2/jquery.min.js"></script>
+  <script>
+    // vars
+    var img=_('.thumbnail img'),
+      canvas=_('#cs'),
+      result=_('.result'),
+      result2=_('.result2'),
+      preview=_('.preview'),
+      x='',
+      y='',
+      colors=["PatientID,rgb r,rgb g,rgb b,cmyk c,cmyk m,cmyk y,cmyk k,lab l,lab a,lab b,hsl h, hsl s, hsl l,hsv h,hsv s,hsv v,luminance,temperature,ryb r,ryb y,ryb b,xyz x,xyz y,xyz z,pixels,rgb r,rgb g,rgb b,cmyk c,cmyk m,cmyk y,cmyk k,lab l,lab a,lab b,hsl h, hsl s, hsl l,hsv h,hsv s,hsv v,luminance,temperature,ryb r,ryb y,ryb b,xyz x,xyz y,xyz z,pixels"], color1=[], color2=[];
+
+
+    $('#choose').click(function () {
+      $('input[type="file"]').get(0).click()
+    })
+
+    $('input[type="file"]').change(function (e) {
+      var file=e.target.files[0];
+      var reader=new FileReader();
+      reader.readAsDataURL(file)
+      reader.onload=function () {
+        base64data=reader.result
+        $('.thumbnail img').attr('src', base64data)
+        $('#clear').click()
+      }
+    })
+
+    var rect_size=10
+    $('#rect_size').val(rect_size)
+    changeRectSize()
+
+    $('#rect_size').change(function () {
+      rect_size=$(this).val()
+      changeRectSize()
+    })
+
+    $('#clear').click(function () {
+      color1=color2=[]
+      result.innerHTML=''
+      result2.innerHTML=''
+      $('.rect').css('top', 0)
+      $('.rect').css('left', 0)
+
+      $('.rect2').css('top', 0)
+      $('.rect2').css('left', 0)
+
+      changeRectSize()
+    })
+
+    $('#save').click(function () {
+      if (color1.length&&color2.length) {
+        colors.push($("#patient_id").val()+","+color1.join(",")+","+color2.join(","))
+      }
+      $('.spreadsheet').text((colors.length-1)+" saved!")
+      console.log(colors)
+    })
+
+    $('#download').click(function () {
+      const blob=new Blob([colors.join("\n")]);
+      $('#download_csv').attr('href', URL.createObjectURL(blob));
+      $('#download_csv').attr('download', 'colors.csv');
+      $('#download_csv').get(0).click();
+    })
+
+    // click function
+    img.addEventListener('click', function (e) {
+      // chrome
+      if (e.offsetX) {
+        x=e.offsetX;
+        y=e.offsetY;
+      }
+      // firefox
+      else if (e.layerX) {
+        x=e.layerX;
+        y=e.layerY;
+      }
+
+      var rect_top=y-Math.floor(rect_size/2)
+      var rect_left=x-Math.floor(rect_size/2)
+
+      if (!color1.length) {
+        $('.rect').css('top', rect_top+'px')
+        $('.rect').css('left', rect_left+'px')
+      }
+      else {
+        if (!color2.length) {
+          $('.rect2').css('top', rect_top+'px')
+          $('.rect2').css('left', rect_left+'px')
+        }
+      }
+
+
+      rect_top=rect_top<0? 0:rect_top
+      rect_left=rect_left<0? 0:rect_left
+
+      useCanvas(canvas, img, function () {
+        var r=0, g=0, b=0, count=0
+
+        // get image data
+        var p=canvas.getContext('2d').getImageData(rect_left, rect_top, rect_size, rect_size).data;
+        for (var i=0; i<p.length; i+=4) {
+          r+=p[i]
+          g+=p[i+1]
+          b+=p[i+2]
+          count++
+        }
+
+        r=Math.floor(r/count)
+        g=Math.floor(g/count)
+        b=Math.floor(b/count)
+
+        var rgb=r+','+g+','+b
+        var cmyk=rgbToCmyk(r, g, b)
+        var lab=rgbToLab(r, g, b)
+        var hsl=rgbToHsl(r, g, b)
+        var hsv=rgbToHsv(r, g, b)
+        var luminance=rgbToLuminance(r, g, b)
+        var temperature=rgbToTemperature(r, g, b)
+        var ryb=rgbToRyb(r, g, b)
+        var xyz=rgbToXyz(r, g, b)
+
+        var color=[rgb, cmyk, lab, hsl, hsv, luminance, temperature, ryb, xyz, count]
+
+        if (!color1.length) {
+          color1=color
+
+          // show info
+          result.innerHTML='<span>HEX: '+rgbToHex(r, g, b)+'</span>'+
+            '<span>RGB:  '+rgb+'</span>'+
+            '<span>CMYK:  '+cmyk+'</span>'+
+            '<span>LAB:   '+lab+'</span>'+
+            '<span>HSL:   '+hsl+'</span>'+
+            '<span>HSV:   '+hsv+'</span>'+
+            '<span>luminance:   '+luminance+'</span>'+
+            '<span>temperature:   '+temperature+'</span>'+
+            '<span>RYB:   '+ryb+'</span>'+
+            '<span>XYZ:   '+xyz+'</span>';
+
+
+          // show preview color
+          preview.style.background=rgbToHex(r, g, b);
+
+          // add background in body
+          document.body.style.background=rgbToHex(r, g, b);
+        }
+        else {
+          if (!color2.length) {
+            color2=color
+
+            // show info
+            result2.innerHTML='<span>HEX: '+rgbToHex(r, g, b)+'</span>'+
+              '<span>RGB:  '+rgb+'</span>'+
+              '<span>CMYK:  '+cmyk+'</span>'+
+              '<span>LAB:   '+lab+'</span>'+
+              '<span>HSL:   '+hsl+'</span>'+
+              '<span>HSV:   '+hsv+'</span>'+
+              '<span>luminance:   '+luminance+'</span>'+
+              '<span>temperature:   '+temperature+'</span>'+
+              '<span>RYB:   '+ryb+'</span>'+
+              '<span>XYZ:   '+xyz+'</span>';
+
+
+            // show preview color
+            preview.style.background=rgbToHex(r, g, b);
+
+            // add background in body
+            document.body.style.background=rgbToHex(r, g, b);
+          }
+        }
+      });
+    }, false);
+
+    // canvas function
+    function useCanvas(el, image, callback) {
+      el.width=image.width; // img width
+      el.height=image.height; // img height
+      // draw image in canvas tag
+      el.getContext('2d').drawImage(image, 0, 0, image.width, image.height);
+      return callback();
+    }
+
+    // short querySelector
+    function _(el) {
+      return document.querySelector(el);
+    };
+
+    function changeRectSize() {
+      if (!color1.length) {
+        $('.rect').css('width', rect_size+'px')
+        $('.rect').css('height', rect_size+'px')
+      }
+
+      if (!color2.length) {
+        $('.rect2').css('width', rect_size+'px')
+        $('.rect2').css('height', rect_size+'px')
+      }
+
+    }
+
+    // convert rgba to hex
+    function componentToHex(c) {
+      var hex=c.toString(16);
+      return hex.length==1? "0"+hex:hex;
+    }
+
+    function rgbToHex(r, g, b) {
+      return "#"+componentToHex(r)+componentToHex(g)+componentToHex(b);
+    }
+
+    function rgbToCmyk(r, g, b) {
+      var computedC=0;
+      var computedM=0;
+      var computedY=0;
+      var computedK=0;
+
+      //remove spaces from input RGB values, convert to int
+      var r=parseInt((''+r).replace(/\s/g, ''), 10);
+      var g=parseInt((''+g).replace(/\s/g, ''), 10);
+      var b=parseInt((''+b).replace(/\s/g, ''), 10);
+
+      if (r==null||g==null||b==null||
+        isNaN(r)||isNaN(g)||isNaN(b)) {
+        console.log('Please enter numeric RGB values!');
+        return;
+      }
+      if (r<0||g<0||b<0||r>255||g>255||b>255) {
+        console.log('RGB values must be in the range 0 to 255.');
+        return;
+      }
+
+      // BLACK
+      if (r==0&&g==0&&b==0) {
+        computedK=1;
+        return [0, 0, 0, 1];
+      }
+
+      computedC=1-(r/255);
+      computedM=1-(g/255);
+      computedY=1-(b/255);
+
+      var minCMY=Math.min(computedC,
+        Math.min(computedM, computedY));
+      computedC=Math.round((computedC-minCMY)/(1-minCMY)*100);
+      computedM=Math.round((computedM-minCMY)/(1-minCMY)*100);
+      computedY=Math.round((computedY-minCMY)/(1-minCMY)*100);
+      computedK=Math.round(minCMY*100);
+
+      return computedC+','+computedM+','+computedY+','+computedK;
+    }
+
+    function rgbToLab(r, g, b) {
+      r=r/255
+      g=g/255
+      b=b/255
+
+      var x, y, z;
+
+      r=(r>0.04045)? Math.pow((r+0.055)/1.055, 2.4):r/12.92;
+      g=(g>0.04045)? Math.pow((g+0.055)/1.055, 2.4):g/12.92;
+      b=(b>0.04045)? Math.pow((b+0.055)/1.055, 2.4):b/12.92;
+
+
+      x=(r*0.4124+g*0.3576+b*0.1805)/0.95047;
+      y=(r*0.2126+g*0.7152+b*0.0722)/1.00000;
+      z=(r*0.0193+g*0.1192+b*0.9505)/1.08883;
+
+      x=(x>0.008856)? Math.pow(x, 1/3):(7.787*x)+16/116;
+      y=(y>0.008856)? Math.pow(y, 1/3):(7.787*y)+16/116;
+      z=(z>0.008856)? Math.pow(z, 1/3):(7.787*z)+16/116;
+
+      return parseFloat((116*y)-16).toFixed(5)+','+parseFloat(500*(x-y)).toFixed(5)+','+parseFloat(200*(y-z)).toFixed(5)
+    }
+
+    function rgbToHsl(r, g, b) {
+      r/=255;
+      g/=255;
+      b/=255;
+      const l=Math.max(r, g, b);
+      const s=l-Math.min(r, g, b);
+      const h=s
+        ? l===r
+          ? (g-b)/s
+          :l===g
+            ? 2+(b-r)/s
+            :4+(r-g)/s
+        :0;
+      return parseFloat(60*h<0? 60*h+360:60*h).toFixed(5)+','+parseFloat(100*(s? (l<=0.5? s/(2*l-s):s/(2-(2*l-s))):0)).toFixed(5)+','+parseFloat((100*(2*l-s))/2).toFixed(5)
+    }
+
+    function rgbToHsv(r, g, b) {
+      var rabs, gabs, babs, rr, gg, bb, h, s, v, diff, diffc, percentRoundFn;
+      rabs=r/255;
+      gabs=g/255;
+      babs=b/255;
+      v=Math.max(rabs, gabs, babs),
+        diff=v-Math.min(rabs, gabs, babs);
+      diffc=c => (v-c)/6/diff+1/2;
+      percentRoundFn=num => Math.round(num*100)/100;
+      if (diff==0) {
+        h=s=0;
+      } else {
+        s=diff/v;
+        rr=diffc(rabs);
+        gg=diffc(gabs);
+        bb=diffc(babs);
+
+        if (rabs===v) {
+          h=bb-gg;
+        } else if (gabs===v) {
+          h=(1/3)+rr-bb;
+        } else if (babs===v) {
+          h=(2/3)+gg-rr;
+        }
+        if (h<0) {
+          h+=1;
+        } else if (h>1) {
+          h-=1;
+        }
+      }
+      return Math.round(h*360)+','+percentRoundFn(s*100)+','+percentRoundFn(v*100)
+    }
+
+    function rgbToLuminance(r, g, b) {
+      return parseFloat(((0.2126*r/255)+(0.7152*g/255)+(0.0722*b/255))*100).toFixed(5)
+    }
+
+    function temperature2rgb(kelvin) {
+
+      var temperature=kelvin/100.0;
+      var red, green, blue;
+
+      if (temperature<66.0) {
+        red=255;
+      } else {
+        red=temperature-55.0;
+        red=351.97690566805693+0.114206453784165*red-40.25366309332127*Math.log(red);
+        if (red<0) red=0;
+        if (red>255) red=255;
+      }
+
+
+      if (temperature<66.0) {
+        green=temperature-2;
+        green=-155.25485562709179-0.44596950469579133*green+104.49216199393888*Math.log(green);
+        if (green<0) green=0;
+        if (green>255) green=255;
+
+      } else {
+        green=temperature-50.0;
+        green=325.4494125711974+0.07943456536662342*green-28.0852963507957*Math.log(green);
+        if (green<0) green=0;
+        if (green>255) green=255;
+
+      }
+
+      if (temperature>=66.0) {
+        blue=255;
+      } else {
+
+        if (temperature<=20.0) {
+          blue=0;
+        } else {
+          blue=temperature-10;
+          blue=-254.76935184120902+0.8274096064007395*blue+115.67994401066147*Math.log(blue);
+          if (blue<0) blue=0;
+          if (blue>255) blue=255;
+        }
+      }
+
+      return { red: Math.round(red), blue: Math.round(blue), green: Math.round(green) };
+    }
+
+    function rgbToTemperature(r, g, b) {
+      var temperature, testRGB;
+      var epsilon=0.4;
+      var minTemperature=1000;
+      var maxTemperature=40000;
+      while (maxTemperature-minTemperature>epsilon) {
+        temperature=(maxTemperature+minTemperature)/2;
+        testRGB=temperature2rgb(temperature);
+        if ((testRGB.blue/testRGB.red)>=(b/r)) {
+          maxTemperature=temperature;
+        } else {
+          minTemperature=temperature;
+        }
+      }
+      return Math.round(temperature);
+    }
+
+    function rgbToRyb(r, g, b) {
+      // Remove the whiteness from the color.
+      var w=Math.min(r, g, b);
+      r-=w;
+      g-=w;
+      b-=w;
+
+      var mg=Math.max(r, g, b);
+
+      // Get the yellow out of the red+green.
+      var y=Math.min(r, g);
+      r-=y;
+      g-=y;
+
+      // If this unfortunate conversion combines blue and green, then cut each in
+      // half to preserve the value's maximum range.
+      if (b&&g) {
+        b/=2.0;
+        g/=2.0;
+      }
+
+      // Redistribute the remaining green.
+      y+=g;
+      b+=g;
+
+      // Normalize to values.
+      var my=Math.max(r, y, b);
+      if (my) {
+        var n=mg/my;
+        r*=n;
+        y*=n;
+        b*=n;
+      }
+
+      // Add the white back in.
+      r+=w;
+      y+=w;
+      b+=w;
+
+      // And return back the ryb typed accordingly.
+      return Math.floor(r)+","+Math.floor(y)+","+Math.floor(b);
+    }
+
+    function rgbToXyz(r, g, b) {
+      r=sRGBtoLinearRGB(r/255)
+      g=sRGBtoLinearRGB(g/255)
+      b=sRGBtoLinearRGB(b/255)
+
+      const X=0.4124*r+0.3576*g+0.1805*b
+      const Y=0.2126*r+0.7152*g+0.0722*b
+      const Z=0.0193*r+0.1192*g+0.9505*b
+
+      return Math.floor(X*100)+","+Math.floor(Y*100)+","+Math.floor(Z*100)
+    }
+
+    function sRGBtoLinearRGB(c) {
+      if (c<=0.04045) {
+        return c/12.92
+      } else {
+        return Math.pow((c+0.055)/1.055, 2.4)
+      }
+    }
+
+    function findPos(obj) {
+      var curleft=0, curtop=0;
+      if (obj.offsetParent) {
+        do {
+          curleft+=obj.offsetLeft;
+          curtop+=obj.offsetTop;
+        } while (obj=obj.offsetParent);
+        return { x: curleft, y: curtop };
+      }
+      return undefined;
+    }
+  </script>
+</body>
+
+</html>
